@@ -22,7 +22,6 @@ import com.skcc.reuben.build.InvocationHandlerFactory;
 import com.skcc.reuben.build.MethodHandler;
 import com.skcc.reuben.build.ReubenBuilder;
 import com.skcc.reuben.build.ReubenBuilderCustomizer;
-import com.skcc.reuben.context.ReubenContext;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -26,14 +26,15 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
-public class ReubenBusRegistrar
-		implements ImportBeanDefinitionRegistrar, ResourceLoaderAware, EnvironmentAware {
+import com.skcc.reuben.bean.Reuben;
+
+public class ReubenRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoaderAware, EnvironmentAware {
 
 	private ResourceLoader resourceLoader;
 
 	private Environment environment;
 	
-	ReubenBusRegistrar() {
+	ReubenRegistrar() {
 	}
 
 	public void setResourceLoader(ResourceLoader resourceLoader) {
@@ -41,31 +42,16 @@ public class ReubenBusRegistrar
 	}
 
 	public void registerBeanDefinitions(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
-		registerDefaultConfiguration(metadata, registry);
-		registerReubenBus(metadata, registry);
-	}
-
-	private void registerDefaultConfiguration(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
-		Map<String, Object> defaultAttrs = metadata.getAnnotationAttributes(EnableReubenBus.class.getName(), true);
-
-		if (defaultAttrs != null && defaultAttrs.containsKey("defaultConfiguration")) {
-			String name;
-			if (metadata.hasEnclosingClass()) {
-				name = "default." + metadata.getEnclosingClassName();
-			} else {
-				name = "default." + metadata.getClassName();
-			}
-			registerBusConfiguration(registry, name, defaultAttrs.get("defaultConfiguration"));
-		}
+		registerReuben(metadata, registry);
 	}
 	
-	public void registerReubenBus(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
+	public void registerReuben(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
 		ClassPathScanningCandidateComponentProvider scanner = getScanner();
 		scanner.setResourceLoader(this.resourceLoader);
 
 		Set<String> basePackages;
 
-		AnnotationTypeFilter annotationTypeFilter = new AnnotationTypeFilter(ReubenBus.class);
+		AnnotationTypeFilter annotationTypeFilter = new AnnotationTypeFilter(Reuben.class);
 		scanner.addIncludeFilter(annotationTypeFilter);
 		basePackages = getBasePackages(metadata);
 
@@ -76,20 +62,36 @@ public class ReubenBusRegistrar
 					
 					AnnotatedBeanDefinition beanDefinition = (AnnotatedBeanDefinition) candidateComponent;
 					AnnotationMetadata annotationMetadata = beanDefinition.getMetadata();
-					Assert.isTrue(annotationMetadata.isInterface(),
-							"@ReubenBus can be specified on an interface");
+					Assert.isTrue(annotationMetadata.isConcrete(),
+							"@Reuben can be specified on an concrete class");
 
 					Map<String, Object> attributes = annotationMetadata
-							.getAnnotationAttributes(ReubenBus.class.getCanonicalName());
+							.getAnnotationAttributes(Reuben.class.getCanonicalName());
 
-					String name = getName(attributes);
-					registerBusConfiguration(registry, name, attributes.get("configuration"));
-
-					registerReubenBus(registry, annotationMetadata, attributes);
+					registerReuben(registry, annotationMetadata, attributes);
 				}
 			}
 		}
 	}
+	
+	private void registerReuben(BeanDefinitionRegistry registry, AnnotationMetadata annotationMetadata,
+			Map<String, Object> attributes) {
+		String className = annotationMetadata.getClassName();
+		BeanDefinitionBuilder definition = BeanDefinitionBuilder.genericBeanDefinition(ReubenFactoryBean.class);
+
+		String contextId = getName(attributes);
+		definition.addPropertyValue("type", className);
+		definition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);
+
+		String alias = contextId + "Reuben";
+		AbstractBeanDefinition beanDefinition = definition.getBeanDefinition();
+		beanDefinition.setAttribute(FactoryBean.OBJECT_TYPE_ATTRIBUTE, className);
+
+		BeanDefinitionHolder holder = new BeanDefinitionHolder(beanDefinition, className, new String[] { alias });
+		BeanDefinitionReaderUtils.registerBeanDefinition(holder, registry);
+	}
+
+	
 	
 	private String getName(Map<String, Object> attributes) {
 		
@@ -102,27 +104,6 @@ public class ReubenBusRegistrar
 				"Propery 'name' must be provided in @" + ReubenBus.class.getSimpleName());
 	}
 
-	private void registerReubenBus(BeanDefinitionRegistry registry, AnnotationMetadata annotationMetadata,
-			Map<String, Object> attributes) {
-		String className = annotationMetadata.getClassName();
-		BeanDefinitionBuilder definition = BeanDefinitionBuilder.genericBeanDefinition(ReubenBusFactoryBean.class);
-
-		String contextId = getName(attributes);
-		definition.addPropertyValue("contextId", contextId);
-		definition.addPropertyValue("type", className);
-		definition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);
-
-		String alias = contextId + "ReubenBus";
-		AbstractBeanDefinition beanDefinition = definition.getBeanDefinition();
-		beanDefinition.setAttribute(FactoryBean.OBJECT_TYPE_ATTRIBUTE, className);
-
-		boolean primary = (Boolean) attributes.get("primary");
-
-		beanDefinition.setPrimary(primary);
-
-		BeanDefinitionHolder holder = new BeanDefinitionHolder(beanDefinition, className, new String[] { alias });
-		BeanDefinitionReaderUtils.registerBeanDefinition(holder, registry);
-	}
 
 	protected ClassPathScanningCandidateComponentProvider getScanner() {
 		return new ClassPathScanningCandidateComponentProvider(false, this.environment) {
@@ -162,14 +143,6 @@ public class ReubenBusRegistrar
 			basePackages.add(ClassUtils.getPackageName(importingClassMetadata.getClassName()));
 		}
 		return basePackages;
-	}
-
-	private void registerBusConfiguration(BeanDefinitionRegistry registry, Object name, Object configuration) {
-		BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(ReubenBusSpecification.class);
-		builder.addConstructorArgValue(name);
-		builder.addConstructorArgValue(configuration);
-		registry.registerBeanDefinition(name + "." + ReubenBusSpecification.class.getSimpleName(),
-				builder.getBeanDefinition());
 	}
 
 	@Override
