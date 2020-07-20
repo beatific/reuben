@@ -19,7 +19,7 @@ public @interface EnableReubenBus {
 	String[] basePackages() default {};
 
 	Class<?>[] basePackageClasses() default {};
-
+	
 	Class<?>[] defaultConfiguration() default {};
 
 }

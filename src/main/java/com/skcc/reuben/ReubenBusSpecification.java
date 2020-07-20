@@ -13,7 +13,7 @@ public class ReubenBusSpecification implements NamedContextFactory.Specification
 
 	@Getter @Setter
 	private String name;
-
+	
 	@Getter @Setter
 	private Class<?>[] configuration;
 

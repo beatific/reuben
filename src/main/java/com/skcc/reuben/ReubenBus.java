@@ -13,17 +13,7 @@ import org.springframework.core.annotation.AliasFor;
 @Documented
 public @interface ReubenBus {
 
-	@AliasFor("name")
-	String value() default "";
-
-	String contextId() default "";
-
-	@AliasFor("value")
 	String name() default "";
-
-	String qualifier() default "";
-
-	String url() default "";
-
+	
 	Class<?>[] configuration() default {};
 }

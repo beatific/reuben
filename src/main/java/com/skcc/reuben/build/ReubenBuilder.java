@@ -5,13 +5,15 @@ import java.lang.reflect.Proxy;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+import lombok.Setter;
+
 public class ReubenBuilder {
 
-	@Autowired
+	@Setter
 	private InvocationHandlerFactory invocationHandlerFactory;
-	@Autowired
+	@Setter
 	private DefaultMethodHandler defaultMethodHandler;
-	@Autowired
+	@Setter
 	private AnnotationMethodMapping mapping;
 	
 	public <T> T build(Class<T> clazz) {

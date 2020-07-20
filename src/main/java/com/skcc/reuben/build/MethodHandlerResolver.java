@@ -6,20 +6,24 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import lombok.Getter;
+
 public class MethodHandlerResolver {
 
 	private Map<Method, MethodHandler> handlers = new HashMap<>();
 	
 	private DefaultMethodHandler defaultMethodHandler;
-	private AnnotationMethodMapping mapping;
+	
+	@Getter
+	private final Class<?> clazz;
 	
 	public MethodHandlerResolver(Class<?> clazz, DefaultMethodHandler defaultMethodHandler, AnnotationMethodMapping mapping) {
 		this.defaultMethodHandler  = defaultMethodHandler;
-		this.mapping = mapping;
+		this.clazz = clazz;
 		Arrays.asList(clazz.getMethods()).stream().forEach(m -> {
 
 			Arrays.asList(m.getAnnotations())
-					.forEach(a -> handlers.put(m, mapping.methodHandler(a)));
+					.forEach(a -> handlers.put(m, mapping.methodHandler(a).orElse(defaultMethodHandler)));
 
 		});
 	}

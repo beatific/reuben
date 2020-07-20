@@ -1,8 +1,9 @@
-package com.skcc.reuben.build.base;
+package com.skcc.reuben.build.support;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 
+import com.skcc.reuben.ReubenBus;
 import com.skcc.reuben.build.InvocationHandlerFactory;
 import com.skcc.reuben.build.MethodHandlerResolver;
 
@@ -15,16 +16,18 @@ public class ReubenInvocationHandlerFactory implements InvocationHandlerFactory 
 	
     class ReubenInvocationHandler implements InvocationHandler {
 		
-		private MethodHandlerResolver handlerResolver;
+		private final MethodHandlerResolver handlerResolver;
+		private final ReubenBus reuben;
 		
 		ReubenInvocationHandler(MethodHandlerResolver handlerResolver) {
 			this.handlerResolver = handlerResolver;
+			reuben = handlerResolver.getClazz().getAnnotation(ReubenBus.class);
 		}
 
 		@Override
 		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 			
-			return handlerResolver.resolve(method).invoke(args);
+			return handlerResolver.resolve(method).invoke(reuben, method, args);
 			
 		}
 
