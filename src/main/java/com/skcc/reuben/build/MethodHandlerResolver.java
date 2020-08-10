@@ -20,7 +20,7 @@ public class MethodHandlerResolver {
 	public MethodHandlerResolver(Class<?> clazz, DefaultMethodHandler defaultMethodHandler, AnnotationMethodMapping mapping) {
 		this.defaultMethodHandler  = defaultMethodHandler;
 		this.clazz = clazz;
-		Arrays.asList(clazz.getMethods()).stream().forEach(m -> {
+		Arrays.asList(clazz.getDeclaredMethods()).stream().forEach(m -> {
 
 			Arrays.asList(m.getAnnotations())
 					.forEach(a -> handlers.put(m, mapping.methodHandler(a).orElse(defaultMethodHandler)));

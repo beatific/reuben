@@ -15,5 +15,7 @@ public @interface ReubenBus {
 
 	String name() default "";
 	
+	boolean primary() default true;
+	
 	Class<?>[] configuration() default {};
 }

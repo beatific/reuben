@@ -1,38 +1,52 @@
 package com.skcc.reuben;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-
-import com.skcc.reuben.bean.Reuben;
+import org.springframework.util.Assert;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
-public class ReubenFactoryBean implements FactoryBean<Object>, ApplicationContextAware {
+@Slf4j
+public class ReubenFactoryBean implements FactoryBean<Object>, InitializingBean, ApplicationContextAware {
 
 	@Getter @Setter
 	private Class<?> type;
 	
+	@Getter @Setter
+	private String contextId;
+	
+	@Getter @Setter
+	private boolean inheritParentContext = true;
+	
+//	private ReubenContext reubenContext;
 	private ApplicationContext applicationContext;
-	private ReubenContext reubenContext;
 	
 	@Override
 	public Object getObject() throws Exception {
-		Object bean = this.applicationContext.getBean(this.type);
 		
-		Reuben rebuen = this.type.getAnnotation(Reuben.class);
+//		Object bean = reubenContext.getInstanceWithoutAncestors(contextId, type);
 		
-		if(bean == null) {
-			bean = this.type.newInstance();
-		}
+//		Object bean = applicationContext.getBean(type);
 		
-		reubenContext.registerReuben(rebuen.name(), bean);
+//		ReubenContext reubenContext = this.applicationContext.getBean(ReubenContext.class);
+//		
+//		Object bean = reubenContext.getReuben(type);
+//		Object bean = applicationContext.getBean(type);
+		
+//		if(bean == null) {
+		    Object bean = BeanUtils.instantiateClass(type);
+//		    reubenContext.registerReuben(contextId, bean);
+//		}
 		
 		return bean;
 	}
-
+	
 	@Override
 	public Class<?> getObjectType() {
 		return this.type;
@@ -41,7 +55,11 @@ public class ReubenFactoryBean implements FactoryBean<Object>, ApplicationContex
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 		this.applicationContext = applicationContext;
-		this.reubenContext = applicationContext.getBean(ReubenContext.class);
+	}
+
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		Assert.hasText(this.contextId, "contextId must be set");
 	}
 
 

@@ -1,18 +1,23 @@
 package com.skcc.reuben.event;
 
-import org.springframework.cloud.bus.event.RemoteApplicationEvent;
+import java.util.List;
 
-import com.skcc.reuben.payload.Payload;
+import org.springframework.cloud.bus.event.RemoteApplicationEvent;
 
 import lombok.Getter;
 
 @SuppressWarnings("serial")
-public class RemoteCommunicationEvent extends RemoteApplicationEvent {
+public class RemoteCommunicationEvent extends RemoteApplicationEvent{
 
 	@Getter
 	private String name;
 	
-	public RemoteCommunicationEvent(String name, Payload payload, String originService, String destinationService) {
+
+	protected RemoteCommunicationEvent() {
+		name = null;
+	}
+	
+	public RemoteCommunicationEvent(String name, List<?> payload, String originService, String destinationService) {
 		super(payload, originService, destinationService);
 		this.name = name;
 	}

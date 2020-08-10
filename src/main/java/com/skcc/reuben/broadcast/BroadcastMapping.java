@@ -4,7 +4,6 @@ import java.lang.annotation.Annotation;
 
 import com.skcc.reuben.annotation.AnnotationMapping;
 import com.skcc.reuben.build.MethodHandler;
-import com.skcc.reuben.event.ConvertableRemoteCommunicationEvent;
 
 public class BroadcastMapping implements AnnotationMapping {
 

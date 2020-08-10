@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
+import com.skcc.reuben.broadcast.BroadcastMapping;
 import com.skcc.reuben.build.AnnotationMethodMapping;
 import com.skcc.reuben.build.DefaultMethodHandler;
 import com.skcc.reuben.build.InvocationHandlerFactory;
@@ -38,6 +39,18 @@ public class ReubenBusConfiguration {
 	@Bean
 	public AnnotationMethodMapping annotationMethodMapping() {
 		return new AnnotationMethodMapping();
+	}
+	
+	@Bean
+	@ConditionalOnMissingBean(ReubenBusConfigurer.class)
+	public ReubenBusConfigurer reubenBusConfigurer() {
+		return new ReubenBusConfigurer() {
+		};
+	}
+	
+	@Bean
+	public BroadcastMapping broadcastMapping() {
+		return new BroadcastMapping();
 	}
 	
 }

@@ -11,6 +11,8 @@ import com.skcc.reuben.build.InvocationHandlerFactory;
 import com.skcc.reuben.build.MethodHandler;
 
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 @ConfigurationProperties("reuben.bus")
 public class ReubenBusProperties {
@@ -18,6 +20,9 @@ public class ReubenBusProperties {
 	private boolean defaultToProperties = true;
 
 	private String defaultConfig = "default";
+	
+	@Getter @Setter
+	private String id = "application";
 
 	private Map<String, ReubenBusConfig> config = new HashMap<>();
 

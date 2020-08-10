@@ -1,69 +1,40 @@
 package com.skcc.reuben.payload;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
-public abstract class Payload {
+import org.bouncycastle.util.Arrays;
 
-	public enum Type {
-		EMPTY, SINGLE, MULTI;
+public class Payload {
+
+	protected final Object[] values;
+
+	private static final Payload EMPTY = new Payload();
+
+	private Payload() {
+		this.values = new Object[0];
 	}
 	
-	protected final Object value;
-	protected Type type;
-	
-	private Payload() {
-        this.value = null;
-    }
-	
 	private Payload(Object value) {
-        this.value = Objects.requireNonNull(value);
-    }
+		List<Object> list = new ArrayList<Object>();
+		list.add(value);
+		values = list.toArray();
+	}
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-	public static <T> Payload of(T[] value) {
-    	return value == null || value.length == 0 ? new Empty() : value.length == 1 ? new Single(value[0]) : new Multi(value);
-    }
-    
-	public abstract <T> T get();
-    
-    private static class Single<T> extends Payload {
-
-    	
-		public Single(T t) {
-			super(t);
-			super.type = Type.SINGLE;
-		}
+	private Payload(Object[] values) {
 		
-		@SuppressWarnings("unchecked")
-		public T get() {
-			return (T)super.value;
-		}
-    	
-    }
-    
-    private static class Multi<T> extends Payload {
-    	
-		public Multi(T[] t) {
-			super(t);
-			super.type = Type.MULTI;
-		}
-    	
-    	@SuppressWarnings("unchecked")
-		public T[] get() {
-			return (T[])super.value;
-		}
-    }
-    
-    private static class Empty extends Payload {
-    	
-    	public Empty() {
-    		super();
-    		super.type = Type.EMPTY;
-		}
-    	
-    	public <T> T get() {
-    		throw new UnsupportedOperationException("Empty Payload does not support method 'get'.");
-    	}
-    }
-    
+		this.values = Objects.requireNonNull(values);
+	}
+	
+	public Object[] get() {
+
+		return values;
+	}
+
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public static <P> Payload of(P[] value) {
+		return value == null || value.length == 0 ? EMPTY : new Payload(value);
+	}
 }

@@ -2,27 +2,36 @@ package com.skcc.reuben.annotation;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.util.ReflectionUtils;
 
 import com.skcc.reuben.ReubenBus;
+import com.skcc.reuben.ReubenBusProperties;
 import com.skcc.reuben.build.MethodHandler;
 import com.skcc.reuben.event.ConvertableRemoteCommunicationEvent;
 import com.skcc.reuben.event.RemoteCommunicationEvent;
-import com.skcc.reuben.payload.Payload;
 
-public abstract class AbstractMethodHandler implements MethodHandler, ApplicationEventPublisherAware {
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public abstract class AbstractMethodHandler implements MethodHandler {
 
 	private ApplicationEventPublisher applicationEventPublisher;
 	
 	private Map<Method, String> targets = new HashMap<>();;
 	
 	private AnnotationMapping mapping;
+	
+	private ReubenBusProperties properties;
+	
+	public void setReubenBusProperties (ReubenBusProperties properties) {
+		this.properties = properties;
+	}
 	
 	@Override
 	public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
@@ -40,13 +49,13 @@ public abstract class AbstractMethodHandler implements MethodHandler, Applicatio
 	
 	protected abstract Class<? extends ConvertableRemoteCommunicationEvent> event();
 	
-	protected boolean isBroadcast() {
+	protected boolean isBroadcast(Method method) {
 		return false;
 	}
 	
 	private Object param(Annotation annotation, String methodName) {
 		try {
-			Method method = annotation.getClass().getMethod(methodName, new Class<?>[] {});
+			Method method = annotation.annotationType().getMethod(methodName, new Class<?>[] {});
 			return ReflectionUtils.invokeMethod(method, annotation);
 		} catch (NoSuchMethodException | SecurityException e) {
 			throw new UnsupportedOperationException("Annotation '" + annotation.getClass().getSimpleName() + "' does not have '" + methodName +"'");
@@ -57,6 +66,7 @@ public abstract class AbstractMethodHandler implements MethodHandler, Applicatio
 	private String target(Method method) {
 		
 		return Optional.ofNullable(targets.get(method)).orElseGet(() -> {
+			
 			String name = (String)param(method.getAnnotation(mapping.annotation()), "name");
 			targets.put(method, name);
 			return name;
@@ -66,13 +76,13 @@ public abstract class AbstractMethodHandler implements MethodHandler, Applicatio
 	@Override
 	public Object invoke(ReubenBus reuben, Method method, Object[] args) throws Throwable {
 		
-		Payload payload = Payload.of(args);
-		String originService = null;
+//		Payload payload = Payload.of(args);
+		String originService = properties.getId();
 		
-		String destinationService = isBroadcast() ? null : reuben.name();
+		String destinationService = isBroadcast(method) ? null : reuben.name();
 		String name = target(method);
 		
-		RemoteCommunicationEvent remoteCommunicationEvent = new RemoteCommunicationEvent(name, payload, originService, destinationService);
+		RemoteCommunicationEvent remoteCommunicationEvent = new RemoteCommunicationEvent(name, Arrays.asList(args), originService, destinationService);
 		ConvertableRemoteCommunicationEvent event = ConvertableRemoteCommunicationEvent.convert(event(), remoteCommunicationEvent);
 		publish(event);
 		

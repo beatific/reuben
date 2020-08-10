@@ -1,12 +1,13 @@
 package com.skcc.reuben.event;
 
-import com.skcc.reuben.payload.Payload;
+import java.util.List;
 
+@SuppressWarnings("serial")
 public class RemoteRequestEvent extends RemoteCommunicationEvent {
 
-	public RemoteRequestEvent(String name, Payload payload, String originService, String destinationService) {
+	public RemoteRequestEvent() {}
+	public RemoteRequestEvent(String name, List<?> payload, String originService, String destinationService) {
 		super(name, payload, originService, destinationService);
-		// TODO Auto-generated constructor stub
 	}
 
 }

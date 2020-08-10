@@ -32,9 +32,6 @@ public class ReubenBusFactoryBean implements FactoryBean<Object>, InitializingBe
 	private Class<?> type;
 
 	@Getter @Setter
-	private String name;
-	
-	@Getter @Setter
 	private String contextId;
 
 	@Getter @Setter
@@ -45,11 +42,10 @@ public class ReubenBusFactoryBean implements FactoryBean<Object>, InitializingBe
 	@Override
 	public void afterPropertiesSet() {
 		
-		Assert.hasText(this.name, "Name must be set");
 		Assert.hasText(this.contextId, "contextId must be set");
 	}
 
-	protected ReubenBuilder reuben(ReubenContext context) {
+	protected ReubenBuilder reuben(ReubenBusContext context) {
 
 		ReubenBuilder builder = get(context, ReubenBuilder.class);
 		
@@ -59,7 +55,7 @@ public class ReubenBusFactoryBean implements FactoryBean<Object>, InitializingBe
 		return builder;
 	}
 
-	private void applyBuildCustomizers(ReubenContext context, ReubenBuilder builder) {
+	private void applyBuildCustomizers(ReubenBusContext context, ReubenBuilder builder) {
 		Map<String, ReubenBuilderCustomizer> customizerMap = context
 				.getInstances(contextId, ReubenBuilderCustomizer.class);
 
@@ -71,36 +67,38 @@ public class ReubenBusFactoryBean implements FactoryBean<Object>, InitializingBe
 		}
 	}
 
-	protected void configureReuben(ReubenContext context, ReubenBuilder builder) {
+	protected void configureReuben(ReubenBusContext context, ReubenBuilder builder) {
+		
 		ReubenBusProperties properties = this.applicationContext.getBean(ReubenBusProperties.class);
 
-		ReubenBusConfigurer reubenBusConfigurer = getOptional(context,ReubenBusConfigurer.class);
+		ReubenBusConfigurer reubenBusConfigurer = get(context,ReubenBusConfigurer.class);
 		setInheritParentContext(reubenBusConfigurer.inheritParentConfiguration());
 
 		if (properties != null && inheritParentContext) {
 			if (properties.isDefaultToProperties()) {
-				configureUsingConfiguration(context, builder);
+				configureUsingConfiguration(properties, context, builder);
 				configureUsingProperties(
+						properties, 
 						properties.getConfig().get(properties.getDefaultConfig()),
 						builder);
-				configureUsingProperties(properties.getConfig().get(this.contextId),
+				configureUsingProperties(properties, properties.getConfig().get(this.contextId),
 						builder);
 			}
 			else {
 				configureUsingProperties(
-						properties.getConfig().get(properties.getDefaultConfig()),
+						properties, properties.getConfig().get(properties.getDefaultConfig()),
 						builder);
-				configureUsingProperties(properties.getConfig().get(this.contextId),
+				configureUsingProperties(properties, properties.getConfig().get(this.contextId),
 						builder);
-				configureUsingConfiguration(context, builder);
+				configureUsingConfiguration(properties, context, builder);
 			}
 		}
 		else {
-			configureUsingConfiguration(context, builder);
+			configureUsingConfiguration(properties, context, builder);
 		}
 	}
 	
-	protected void configureUsingConfiguration(ReubenContext context,
+	protected void configureUsingConfiguration(ReubenBusProperties properties, ReubenBusContext context,
 			ReubenBuilder builder) {
 		
 		DefaultMethodHandler defaultMethodHandler = get(context, DefaultMethodHandler.class);
@@ -111,6 +109,7 @@ public class ReubenBusFactoryBean implements FactoryBean<Object>, InitializingBe
 		mappings.forEach(mapping -> {
 			MethodHandler methodHandler = getOrInstantiate(mapping.methodHandler());
 			methodHandler.setAnnotationMapping(mapping);
+			methodHandler.setReubenBusProperties(properties);
 			annotationMethodMapping.register(mapping.annotation(), methodHandler);
 		});
 		
@@ -120,6 +119,7 @@ public class ReubenBusFactoryBean implements FactoryBean<Object>, InitializingBe
 	}
 
 	protected void configureUsingProperties(
+			ReubenBusProperties properties,
 			ReubenBusProperties.ReubenBusConfig config,
 			ReubenBuilder builder) {
 		
@@ -142,6 +142,7 @@ public class ReubenBusFactoryBean implements FactoryBean<Object>, InitializingBe
 			
 			config.getMapping().forEach((annotationClass, methodHandlerClass) -> {
 				MethodHandler methodHandler = getOrInstantiate(methodHandlerClass);
+				methodHandler.setReubenBusProperties(properties);
 				methodHandler.setAnnotationMapping(new AbstractAnnotationMapping() {
 
 					@Override
@@ -181,7 +182,7 @@ public class ReubenBusFactoryBean implements FactoryBean<Object>, InitializingBe
 		return instance;
 	}
 
-	protected <T> T get(ReubenContext context, Class<T> type) {
+	protected <T> T get(ReubenBusContext context, Class<T> type) {
 		T instance = context.getInstance(this.contextId, type);
 		if (instance == null) {
 			throw new IllegalStateException(
@@ -190,11 +191,11 @@ public class ReubenBusFactoryBean implements FactoryBean<Object>, InitializingBe
 		return instance;
 	}
 
-	protected <T> T getOptional(ReubenContext context, Class<T> type) {
+	protected <T> T getOptional(ReubenBusContext context, Class<T> type) {
 		return context.getInstance(this.contextId, type);
 	}
 
-	protected <T> T getInheritedAwareOptional(ReubenContext context, Class<T> type) {
+	protected <T> T getInheritedAwareOptional(ReubenBusContext context, Class<T> type) {
 		if (inheritParentContext) {
 			return getOptional(context, type);
 		}
@@ -203,7 +204,7 @@ public class ReubenBusFactoryBean implements FactoryBean<Object>, InitializingBe
 		}
 	}
 
-	protected <T> Map<String, T> getInheritedAwareInstances(ReubenContext context,
+	protected <T> Map<String, T> getInheritedAwareInstances(ReubenBusContext context,
 			Class<T> type) {
 		if (inheritParentContext) {
 			return context.getInstances(this.contextId, type);
@@ -215,7 +216,7 @@ public class ReubenBusFactoryBean implements FactoryBean<Object>, InitializingBe
 
 	@Override
 	public Object getObject() {
-		ReubenContext context = this.applicationContext.getBean(ReubenContext.class);
+		ReubenBusContext context = this.applicationContext.getBean(ReubenBusContext.class);
 		ReubenBuilder builder = reuben(context);
 		
 		return builder.build(this.type);

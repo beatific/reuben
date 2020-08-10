@@ -2,5 +2,5 @@ package com.skcc.reuben.bean;
 
 public interface ReubenExecutor {
 
-	public void execute(Object object, Object... params);
+	public void execute(Object object, Object... payload);
 }
