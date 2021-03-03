@@ -50,7 +50,6 @@ public class ReubenBuilderTests {
 	public void testDefaults() throws Exception {
 		
 		TestInterface test = builder.build(TestInterface.class);
-		test.test("test");
 	}
 	
 	@EventListener(classes = RemoteCommunicationEvent.class)

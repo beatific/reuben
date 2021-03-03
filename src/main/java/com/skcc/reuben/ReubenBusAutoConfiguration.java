@@ -12,7 +12,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.autoconfigure.LifecycleMvcEndpointAutoConfiguration;
 import org.springframework.cloud.bus.BusPathMatcher;
-import org.springframework.cloud.bus.BusProperties;
 import org.springframework.cloud.bus.ConditionalOnBusEnabled;
 import org.springframework.cloud.bus.ServiceMatcherAutoConfiguration;
 import org.springframework.cloud.bus.SpringCloudBusClient;
@@ -35,9 +34,11 @@ import org.springframework.util.PathMatcher;
 
 import com.skcc.reuben.bean.DefaultReubenExecutor;
 import com.skcc.reuben.bean.ReubenExecutor;
+import com.skcc.reuben.bus.ReubenBusClient;
 import com.skcc.reuben.bus.ReubenServiceMatcher;
 import com.skcc.reuben.event.RemoteCommunicationEvent;
 import com.skcc.reuben.listener.ReubenListener;
+import com.skcc.reuben.unicast.UnicastEvent;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -46,7 +47,7 @@ import lombok.extern.slf4j.Slf4j;
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties({ ReubenBusProperties.class,})
 @ConditionalOnBusEnabled
-@EnableBinding(SpringCloudBusClient.class)
+@EnableBinding({SpringCloudBusClient.class, ReubenBusClient.class})
 @AutoConfigureBefore(BindingServiceConfiguration.class)
 // so stream bindings work properly
 @AutoConfigureAfter({ LifecycleMvcEndpointAutoConfiguration.class,
@@ -57,19 +58,20 @@ public class ReubenBusAutoConfiguration implements ApplicationEventPublisherAwar
 
 	private final BindingServiceProperties bindings;
 
-	private final BusProperties bus;
+	private final ReubenBusProperties bus;
 
 	private MessageChannel cloudBusOutboundChannel;
+	
+	private MessageChannel onceOutboundChannel;
 
 	private ApplicationEventPublisher applicationEventPublisher;
 	
 	public static final String CLOUD_CONFIG_NAME_PROPERTY = "spring.cloud.config.name";
 	
-	public ReubenBusAutoConfiguration(BindingServiceProperties bindings, BusProperties bus) {
+	public ReubenBusAutoConfiguration(BindingServiceProperties bindings, ReubenBusProperties bus) {
 		this.bindings = bindings;
 		this.bus = bus;
 	}
-	
 	
 	@Autowired
 	public ReubenServiceMatcher serviceMatcher(@BusPathMatcher PathMatcher pathMatcher,
@@ -109,6 +111,32 @@ public class ReubenBusAutoConfiguration implements ApplicationEventPublisherAwar
 				|| output.getDestination().equals(SpringCloudBusClient.OUTPUT)) {
 			output.setDestination(this.bus.getDestination());
 		}
+		
+		BindingProperties reubenInputBinding = this.bindings.getBindings()
+				.get(ReubenBusClient.INPUT);
+		if (reubenInputBinding == null) {
+			this.bindings.getBindings().put(ReubenBusClient.INPUT,
+					new BindingProperties());
+		}
+		BindingProperties reubenInput = this.bindings.getBindings()
+				.get(ReubenBusClient.INPUT);
+		if (reubenInput.getDestination() == null
+				|| reubenInput.getDestination().equals(ReubenBusClient.INPUT)) {
+			input.setDestination(this.bus.getId());
+		}
+		
+		BindingProperties reubenOutputBinding = this.bindings.getBindings()
+				.get(ReubenBusClient.OUTPUT);
+		if (reubenOutputBinding == null) {
+			this.bindings.getBindings().put(SpringCloudBusClient.OUTPUT,
+					new BindingProperties());
+		}
+		BindingProperties reubenBusOutput = this.bindings.getBindings()
+				.get(ReubenBusClient.OUTPUT);
+		if (reubenBusOutput.getDestination() == null
+				|| reubenBusOutput.getDestination().equals(ReubenBusClient.OUTPUT)) {
+			output.setDestination(this.bus.getId());
+		}
 	}
 	
 	@Override
@@ -123,6 +151,12 @@ public class ReubenBusAutoConfiguration implements ApplicationEventPublisherAwar
 		this.cloudBusOutboundChannel = cloudBusOutboundChannel;
 	}
 	
+	@Autowired
+	@Output(ReubenBusClient.OUTPUT)
+	public void setOnceOutboundChannel(MessageChannel onceOutboundChannel) {
+		this.onceOutboundChannel = onceOutboundChannel;
+	}
+	
 	
 	@EventListener(classes = RemoteCommunicationEvent.class)
 	public void acceptLocal(RemoteCommunicationEvent event) {
@@ -134,14 +168,19 @@ public class ReubenBusAutoConfiguration implements ApplicationEventPublisherAwar
 //			if (log.isDebugEnabled()) {
 				log.error("Sending remote event on bus: " + event);
 //			}
-			this.cloudBusOutboundChannel.send(MessageBuilder.withPayload(event).build());
+				
+			if(event instanceof UnicastEvent) {
+				this.onceOutboundChannel.send(MessageBuilder.withPayload(event).build());
+			} else {
+			    this.cloudBusOutboundChannel.send(MessageBuilder.withPayload(event).build());
+			}
 		}
 	}
-
-	@StreamListener(SpringCloudBusClient.INPUT)
-	public void acceptRemote(RemoteCommunicationEvent event) {
+	
+	@StreamListener(ReubenBusClient.INPUT)
+	public void acceptOnceRemote(RemoteCommunicationEvent event) {
 		log.error("Received remote event from bus: " + event);
-//		if (event instanceof AckRemoteApplicationEvent) {
+//		if (event instanceof AckRemoteAppl`icationEvent) {
 //			if (this.bus.getTrace().isEnabled() && !this.serviceMatcher.isFromSelf(event)
 //					&& this.applicationEventPublisher != null) {
 //				this.applicationEventPublisher.publishEvent(event);
@@ -150,7 +189,6 @@ public class ReubenBusAutoConfiguration implements ApplicationEventPublisherAwar
 //			return;
 //		}
 		
-
 //		if (log.isDebugEnabled()) {
 //			log.debug("Received remote event from bus: " + event);
 //		}
@@ -158,6 +196,50 @@ public class ReubenBusAutoConfiguration implements ApplicationEventPublisherAwar
 		if (this.serviceMatcher.isForSelf(event)
 				&& this.applicationEventPublisher != null) {
 			if (!this.serviceMatcher.isFromSelf(event)) {
+				
+				log.error("origin[{}], dest[{}], current[{}] ", event.getOriginService(), event.getDestinationService(), serviceMatcher.getServiceId());
+				this.applicationEventPublisher.publishEvent(event);
+			}
+//			if (this.bus.getAck().isEnabled()) {
+//				AckRemoteApplicationEvent ack = new AckRemoteApplicationEvent(this,
+//						this.serviceMatcher.getServiceId(),
+//						this.bus.getAck().getDestinationService(),
+//						event.getDestinationService(), event.getId(), event.getClass());
+//				this.cloudBusOutboundChannel
+//						.send(MessageBuilder.withPayload(ack).build());
+//				this.applicationEventPublisher.publishEvent(ack);
+//			}
+		}
+//		if (this.bus.getTrace().isEnabled() && this.applicationEventPublisher != null) {
+//			// We are set to register sent events so publish it for local consumption,
+//			// irrespective of the origin
+//			this.applicationEventPublisher.publishEvent(new SentApplicationEvent(this,
+//					event.getOriginService(), event.getDestinationService(),
+//					event.getId(), event.getClass()));
+//		}
+	}
+
+	@StreamListener(SpringCloudBusClient.INPUT)
+	public void acceptRemote(RemoteCommunicationEvent event) {
+		log.error("Received remote event from bus: " + event);
+//		if (event instanceof AckRemoteAppl`icationEvent) {
+//			if (this.bus.getTrace().isEnabled() && !this.serviceMatcher.isFromSelf(event)
+//					&& this.applicationEventPublisher != null) {
+//				this.applicationEventPublisher.publishEvent(event);
+//			}
+//			// If it's an ACK we are finished processing at this point
+//			return;
+//		}
+		
+//		if (log.isDebugEnabled()) {
+//			log.debug("Received remote event from bus: " + event);
+//		}
+
+		if (this.serviceMatcher.isForSelf(event)
+				&& this.applicationEventPublisher != null) {
+			if (!this.serviceMatcher.isFromSelf(event)) {
+				
+				log.error("origin[{}], dest[{}], current[{}] ", event.getOriginService(), event.getDestinationService(), serviceMatcher.getServiceId());
 				this.applicationEventPublisher.publishEvent(event);
 			}
 //			if (this.bus.getAck().isEnabled()) {
@@ -187,14 +269,14 @@ public class ReubenBusAutoConfiguration implements ApplicationEventPublisherAwar
 	
 	@Bean
 	public ReubenListener reubenListener() {
-		return new ReubenListener();
+		return new ReubenListener(serviceMatcher);
 	}
 	
 	@Autowired(required = false)
 	private List<ReubenBusSpecification> configurations = new ArrayList<>();
 	
 	@Bean
-	public ReubenBusContext reubenContext() {
+	public ReubenBusContext reubenBusContext() {
 		ReubenBusContext context = new ReubenBusContext();
 		context.setConfigurations(this.configurations);
 		return context;

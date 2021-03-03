@@ -2,8 +2,10 @@ package com.skcc.reuben.annotation;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -76,14 +78,18 @@ public abstract class AbstractMethodHandler implements MethodHandler {
 	@Override
 	public Object invoke(ReubenBus reuben, Method method, Object[] args) throws Throwable {
 		
-//		Payload payload = Payload.of(args);
+		List<?> payload = Arrays.asList(Optional.ofNullable(args).orElse(new Object[0]));
+		
+		log.error("payload [{}]", payload);
 		String originService = properties.getId();
 		
 		String destinationService = isBroadcast(method) ? null : reuben.name();
 		String name = target(method);
 		
-		RemoteCommunicationEvent remoteCommunicationEvent = new RemoteCommunicationEvent(name, Arrays.asList(args), originService, destinationService);
+		RemoteCommunicationEvent remoteCommunicationEvent = new RemoteCommunicationEvent(name, payload, originService, destinationService);
 		ConvertableRemoteCommunicationEvent event = ConvertableRemoteCommunicationEvent.convert(event(), remoteCommunicationEvent);
+		
+		log.error("ConvertableRemoteCommunicationEvent [{}]", event);
 		publish(event);
 		
 		return null;

@@ -12,6 +12,8 @@ import com.skcc.reuben.build.InvocationHandlerFactory;
 import com.skcc.reuben.build.ReubenBuilder;
 import com.skcc.reuben.build.support.ReubenDefaultMethodHandler;
 import com.skcc.reuben.build.support.ReubenInvocationHandlerFactory;
+import com.skcc.reuben.multicast.MulticastMapping;
+import com.skcc.reuben.unicast.UnicastMapping;
 
 @Configuration(proxyBeanMethods = false)
 public class ReubenBusConfiguration {
@@ -51,6 +53,16 @@ public class ReubenBusConfiguration {
 	@Bean
 	public BroadcastMapping broadcastMapping() {
 		return new BroadcastMapping();
+	}
+	
+	@Bean
+	public MulticastMapping multicastMapping() {
+		return new MulticastMapping();
+	}
+	
+	@Bean
+	public UnicastMapping unicastMapping() {
+		return new UnicastMapping();
 	}
 	
 }

@@ -1,0 +1,3 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.skcc.reuben.ReubenBusAutoConfiguration,\
+com.skcc.reuben.ReubenAutoConfiguration

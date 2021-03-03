@@ -3,9 +3,6 @@ package com.skcc.reuben.payload;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
-
-import org.bouncycastle.util.Arrays;
 
 public class Payload {
 
@@ -18,6 +15,7 @@ public class Payload {
 	}
 	
 	private Payload(Object value) {
+		
 		List<Object> list = new ArrayList<Object>();
 		list.add(value);
 		values = list.toArray();
@@ -33,8 +31,8 @@ public class Payload {
 		return values;
 	}
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public static <P> Payload of(P[] value) {
-		return value == null || value.length == 0 ? EMPTY : new Payload(value);
+	public static <T> Payload of(T value) {
+		
+		return value == null ? EMPTY : new Payload(value);
 	}
 }

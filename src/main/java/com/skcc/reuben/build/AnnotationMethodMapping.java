@@ -8,6 +8,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 
+import lombok.extern.slf4j.Slf4j;
+
 public class AnnotationMethodMapping implements ApplicationEventPublisherAware {
 
 	private Map<Class<? extends Annotation>, MethodHandler> methodHandlers = new ConcurrentHashMap<>();

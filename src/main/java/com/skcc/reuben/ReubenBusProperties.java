@@ -23,6 +23,9 @@ public class ReubenBusProperties {
 	
 	@Getter @Setter
 	private String id = "application";
+	
+	@Getter @Setter
+	private String destination = "springCloudBus";
 
 	private Map<String, ReubenBusConfig> config = new HashMap<>();
 

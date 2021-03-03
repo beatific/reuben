@@ -38,13 +38,6 @@ public class ReubenListenerTests {
 	@EnableReuben("com.skcc.reuben")
 	protected static class ReubenBusTestConfig  {
 		
-		
-		
-//		@EventListener(classes = BroadcastEvent.class)
-//		public void acceptLocal(BroadcastEvent event) {
-//			ReubenListenerTests.event = event;
-//			log.error("Listener event [{}]", event);
-//		}
 	}
 
 	@Test

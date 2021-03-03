@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 public class MethodHandlerResolver {
 
@@ -18,12 +19,15 @@ public class MethodHandlerResolver {
 	private final Class<?> clazz;
 	
 	public MethodHandlerResolver(Class<?> clazz, DefaultMethodHandler defaultMethodHandler, AnnotationMethodMapping mapping) {
+		
 		this.defaultMethodHandler  = defaultMethodHandler;
 		this.clazz = clazz;
 		Arrays.asList(clazz.getDeclaredMethods()).stream().forEach(m -> {
 
+			
 			Arrays.asList(m.getAnnotations())
-					.forEach(a -> handlers.put(m, mapping.methodHandler(a).orElse(defaultMethodHandler)));
+					.forEach(a -> {
+						handlers.put(m, mapping.methodHandler(a).orElse(defaultMethodHandler));});
 
 		});
 	}

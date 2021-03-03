@@ -8,6 +8,8 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Configuration;
 
+import com.skcc.reuben.bean.Action;
+import com.skcc.reuben.bean.Reuben;
 import com.skcc.reuben.broadcast.Broadcast;
 
 import lombok.extern.slf4j.Slf4j;
@@ -16,17 +18,18 @@ import lombok.extern.slf4j.Slf4j;
 public class ReubenBusRegistrarTests {
 	
 	
-	@ReubenBus(name = "reubenBus")
+	@ReubenBus(name = "consumer")
 	protected interface ReubenBusTest {
 		
-		@Broadcast(name = "test")
-		String reubenTest();
+		@Broadcast(name = "reuben")
+		String reubenTest(String name);
 
 	}
 
 	@Configuration(proxyBeanMethods = false)
 	@EnableAutoConfiguration
 	@EnableReubenBus
+	@EnableReuben
 	protected static class ReubenBusTestConfig {
 
 //		private MessageChannel cloudBusOutboundChannel;
@@ -66,7 +69,7 @@ public class ReubenBusRegistrarTests {
 		ConfigurableApplicationContext context = SpringApplication.run(new Class[] { ReubenAutoConfiguration.class, ReubenBusTestConfig.class, ReubenBusAutoConfiguration.class},
 				new String[] { "--spring.main.allow-bean-definition-overriding=true" });
 		ReubenBusTest reubenBus = context.getBean(ReubenBusTest.class);
-		reubenBus.reubenTest();
+		reubenBus.reubenTest("test");
 		assertTrue(ReubenBusTest.class.isInstance(reubenBus));
 	}
 		
